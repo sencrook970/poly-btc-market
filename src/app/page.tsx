@@ -5,6 +5,7 @@ import StatsBar from "@/components/StatsBar";
 import DivergenceChart from "@/components/DivergenceChart";
 import MarketList from "@/components/MarketList";
 import ExecutionLog from "@/components/ExecutionLog";
+import EquityCurveChart from "@/components/EquityCurveChart";
 import { POLL_INTERVAL_MS, MAX_CHART_POINTS, MAX_LOG_ENTRIES } from "@/lib/constants";
 import type {
   DashboardData,
@@ -12,10 +13,18 @@ import type {
   LogEntry,
   ProcessedMarket,
 } from "@/lib/types";
+import {
+  createInitialState,
+  stepEquitySimulation,
+  type EquityPoint,
+  type SimulationState,
+} from "@/lib/equityCurve";
 
 export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [chartData, setChartData] = useState<DivergencePoint[]>([]);
+  const [equityData, setEquityData] = useState<EquityPoint[]>([]);
+  const [simState, setSimState] = useState<SimulationState | null>(null);
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const [isLive, setIsLive] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -88,6 +97,21 @@ export default function Dashboard() {
       if (newLogs.length > 0) {
         setLogEntries((prev) => [...prev, ...newLogs].slice(-MAX_LOG_ENTRIES));
       }
+
+      // Update equity curve simulation
+      setSimState((prev) => {
+        const baseState = prev ?? createInitialState();
+        const { state: nextState, point } = stepEquitySimulation(
+          baseState,
+          dashData.markets,
+          dashData.timestamp
+        );
+        setEquityData((prevPoints) => {
+          const next = [...prevPoints, point];
+          return next.slice(-MAX_CHART_POINTS);
+        });
+        return nextState;
+      });
     } catch (err) {
       console.error("Fetch error:", err);
       setError(err instanceof Error ? err.message : "Unknown error");
@@ -120,6 +144,15 @@ export default function Dashboard() {
 
       {/* Divergence Chart */}
       <DivergenceChart data={chartData} />
+
+      {/* Equity Curve Chart */}
+      <EquityCurveChart
+        data={equityData}
+        onReset={() => {
+          setEquityData([]);
+          setSimState(null);
+        }}
+      />
 
       {/* Bottom: Market List + Execution Log */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
