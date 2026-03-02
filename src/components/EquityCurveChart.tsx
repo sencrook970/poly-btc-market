@@ -39,7 +39,7 @@ export default function EquityCurveChart({ data, onReset }: EquityCurveChartProp
     <div className="border border-gray-700 rounded-sm bg-gray-900/50 p-4">
       <div className="flex items-center justify-between mb-3">
         <div className="text-[10px] tracking-widest text-gray-500 uppercase">
-          EQUITY CURVE (PAPER TRADING)
+          WHAT IF YOU TRADED EVERY SIGNAL? (FAKE P&L)
         </div>
         <div className="flex items-center gap-3 text-[10px] text-gray-500">
           {latestEquity !== null && (

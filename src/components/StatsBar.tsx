@@ -106,24 +106,24 @@ export default function StatsBar({ prices, topMarket, isLive }: StatsBarProps) {
           color="text-white"
         />
         <StatCard
-          label="POLY MID"
+          label="MARKET PRICE (POLY)"
           value={topMarket ? topMarket.midPrice.toFixed(2) : "---"}
           subValue={topMarket?.title.slice(0, 30) ?? ""}
           color="text-cyan-400"
         />
         <StatCard
-          label="FAIR"
+          label="MODEL PRICE (OUR ESTIMATE)"
           value={topMarket ? topMarket.fairPrice.toFixed(2) : "---"}
           color="text-purple-400"
         />
         <StatCard
-          label="DIVERGENCE"
+          label="MISPRICING (MODEL - MARKET)"
           value={
             topMarket
               ? `${divergence > 0 ? "+" : ""}${(divergence * 100).toFixed(2)}%`
               : "---"
           }
-          subValue={topMarket?.signal ?? ""}
+          subValue={topMarket ? `Signal: ${topMarket.signal}` : ""}
           color={divergenceColor}
         />
       </div>

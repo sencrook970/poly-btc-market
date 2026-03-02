@@ -150,6 +150,21 @@ export default function Dashboard() {
         isLive={isLive}
       />
 
+      {/* About box */}
+      <div className="border border-gray-700 rounded-sm bg-gray-900/60 p-3 text-[11px] text-gray-300">
+        <div className="text-[10px] tracking-widest text-gray-500 uppercase mb-1">
+          WHAT THIS DASHBOARD DOES
+        </div>
+        <p className="mb-1">
+          We watch crypto prediction markets (BTC, ETH, SOL) on Polymarket and compare the markets
+          odds to a simple model based on current price and time left until expiry.
+        </p>
+        <p>
+          When the difference is large, we flag it as a possible mispricing and show what would have
+          happened if you traded every BUY/SELL signal with fake money. No real trades are placed.
+        </p>
+      </div>
+
       {/* Asset Filter */}
       <div className="flex justify-end text-[10px] text-gray-500">
         <span className="mr-2 uppercase tracking-widest">Asset:</span>
