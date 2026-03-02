@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { POLYMARKET_API, BINANCE_REST } from "@/lib/constants";
 import { processMarket, isBtcPriceMarket } from "@/lib/polymarket";
 import type { DashboardData } from "@/lib/types";
+import { getLatestWsPrice, initBinanceWs } from "@/lib/binanceWs";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,11 @@ interface PolymarketEvent {
 
 export async function GET() {
   try {
-    // Fetch events (contains nested markets) and BTC price in parallel
+    // Ensure Binance WebSocket client is running (no-op if already started)
+    initBinanceWs();
+
+    // Fetch events (contains nested markets). Prefer WebSocket BTC price but
+    // fall back to REST if no WebSocket price is available yet.
     const [eventsRes, binanceRes] = await Promise.all([
       fetch(
         `${POLYMARKET_API.replace("/markets", "/events")}?limit=300&active=true&closed=false`,
@@ -45,7 +50,11 @@ export async function GET() {
       binanceRes.json(),
     ]);
 
-    const btcPrice = parseFloat(binanceData.price);
+    const wsPrice = getLatestWsPrice();
+    const btcPrice =
+      typeof wsPrice === "number" && !Number.isNaN(wsPrice)
+        ? wsPrice
+        : parseFloat(binanceData.price);
 
     // Extract all markets from events, filter for BTC price predictions
     const allMarkets: Array<{
