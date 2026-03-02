@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { POLYMARKET_API, BINANCE_REST } from "@/lib/constants";
-import { processMarket, isBtcPriceMarket } from "@/lib/polymarket";
-import type { DashboardData } from "@/lib/types";
+import { processMarket, isSupportedAssetPriceMarket, inferAsset } from "@/lib/polymarket";
+import type { AssetPrices, DashboardData } from "@/lib/types";
 import { getLatestWsPrice, initBinanceWs } from "@/lib/binanceWs";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +28,7 @@ export async function GET() {
 
     // Fetch events (contains nested markets). Prefer WebSocket BTC price but
     // fall back to REST if no WebSocket price is available yet.
-    const [eventsRes, binanceRes] = await Promise.all([
+    const [eventsRes, btcRes, ethRes, solRes] = await Promise.all([
       fetch(
         `${POLYMARKET_API.replace("/markets", "/events")}?limit=300&active=true&closed=false`,
         { next: { revalidate: 0 } }
@@ -36,25 +36,39 @@ export async function GET() {
       fetch(`${BINANCE_REST}?symbol=BTCUSDT`, {
         next: { revalidate: 0 },
       }),
+      fetch(`${BINANCE_REST}?symbol=ETHUSDT`, {
+        next: { revalidate: 0 },
+      }),
+      fetch(`${BINANCE_REST}?symbol=SOLUSDT`, {
+        next: { revalidate: 0 },
+      }),
     ]);
 
-    if (!eventsRes.ok || !binanceRes.ok) {
+    if (!eventsRes.ok || !btcRes.ok || !ethRes.ok || !solRes.ok) {
       return NextResponse.json(
         { error: "Failed to fetch upstream data" },
         { status: 502 }
       );
     }
 
-    const [eventsData, binanceData] = await Promise.all([
+    const [eventsData, btcData, ethData, solData] = await Promise.all([
       eventsRes.json(),
-      binanceRes.json(),
+      btcRes.json(),
+      ethRes.json(),
+      solRes.json(),
     ]);
 
     const wsPrice = getLatestWsPrice();
     const btcPrice =
       typeof wsPrice === "number" && !Number.isNaN(wsPrice)
         ? wsPrice
-        : parseFloat(binanceData.price);
+        : parseFloat(btcData.price);
+
+    const prices: AssetPrices = {
+      BTC: btcPrice,
+      ETH: parseFloat(ethData.price),
+      SOL: parseFloat(solData.price),
+    };
 
     // Extract all markets from events, filter for BTC price predictions
     const allMarkets: Array<{
@@ -72,7 +86,7 @@ export async function GET() {
           market.active &&
           !market.closed &&
           market.outcomePrices &&
-          isBtcPriceMarket(market.question)
+          isSupportedAssetPriceMarket(market.question)
         ) {
           allMarkets.push({
             id: String(market.id),
@@ -99,7 +113,7 @@ export async function GET() {
             m.active &&
             !m.closed &&
             m.outcomePrices &&
-            isBtcPriceMarket(m.question) &&
+            isSupportedAssetPriceMarket(m.question) &&
             !allMarkets.some((existing) => String(existing.id) === String(m.id))
           ) {
             allMarkets.push({
@@ -118,14 +132,20 @@ export async function GET() {
     }
 
     const markets = allMarkets
-      .map((m) => processMarket(m, btcPrice))
+      .map((m) => {
+        const asset = inferAsset(m.question);
+        if (!asset) return null;
+        const spot = prices[asset];
+        if (!spot || Number.isNaN(spot)) return null;
+        return processMarket(m, spot);
+      })
       .filter((m): m is NonNullable<typeof m> => m !== null)
       .sort((a, b) => Math.abs(b.divergence) - Math.abs(a.divergence));
 
     const topDivergence = markets.length > 0 ? markets[0] : null;
 
     const data: DashboardData = {
-      btcPrice,
+      prices,
       markets,
       topDivergence,
       timestamp: Date.now(),

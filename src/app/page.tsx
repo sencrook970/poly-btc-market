@@ -8,6 +8,7 @@ import ExecutionLog from "@/components/ExecutionLog";
 import EquityCurveChart from "@/components/EquityCurveChart";
 import { POLL_INTERVAL_MS, MAX_CHART_POINTS, MAX_LOG_ENTRIES } from "@/lib/constants";
 import type {
+  AssetSymbol,
   DashboardData,
   DivergencePoint,
   LogEntry,
@@ -25,6 +26,7 @@ export default function Dashboard() {
   const [chartData, setChartData] = useState<DivergencePoint[]>([]);
   const [equityData, setEquityData] = useState<EquityPoint[]>([]);
   const [simState, setSimState] = useState<SimulationState | null>(null);
+  const [selectedAsset, setSelectedAsset] = useState<AssetSymbol | "ALL">("ALL");
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const [isLive, setIsLive] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,28 +74,34 @@ export default function Dashboard() {
 
       const dashData: DashboardData = await res.json();
       setData(dashData);
+
+      const visibleMarkets =
+        selectedAsset === "ALL"
+          ? dashData.markets
+          : dashData.markets.filter((m) => m.asset === selectedAsset);
       setIsLive(true);
       setError(null);
 
-      // Add divergence points for chart
-      if (dashData.topDivergence) {
+      // Add divergence points for chart (respect asset filter)
+      const topForChart = visibleMarkets[0] ?? dashData.topDivergence;
+      if (topForChart) {
         setChartData((prev) => {
           const next = [
             ...prev,
             {
               timestamp: dashData.timestamp,
-              label: dashData.topDivergence!.title.slice(0, 20),
-              divergence: dashData.topDivergence!.divergence,
-              btcPrice: dashData.btcPrice,
-              marketTitle: dashData.topDivergence!.title,
+              label: topForChart.title.slice(0, 20),
+              divergence: topForChart.divergence,
+              btcPrice: dashData.prices.BTC,
+              marketTitle: topForChart.title,
             },
           ];
           return next.slice(-MAX_CHART_POINTS);
         });
       }
 
-      // Generate log entries
-      const newLogs = generateLogEntries(dashData.markets, dashData.timestamp);
+      // Generate log entries (respect asset filter)
+      const newLogs = generateLogEntries(visibleMarkets, dashData.timestamp);
       if (newLogs.length > 0) {
         setLogEntries((prev) => [...prev, ...newLogs].slice(-MAX_LOG_ENTRIES));
       }
@@ -103,7 +111,7 @@ export default function Dashboard() {
         const baseState = prev ?? createInitialState();
         const { state: nextState, point } = stepEquitySimulation(
           baseState,
-          dashData.markets,
+          visibleMarkets,
           dashData.timestamp
         );
         setEquityData((prevPoints) => {
@@ -137,10 +145,29 @@ export default function Dashboard() {
 
       {/* Stats Bar */}
       <StatsBar
-        btcPrice={data?.btcPrice ?? 0}
+        prices={data?.prices ?? { BTC: 0, ETH: 0, SOL: 0 }}
         topMarket={data?.topDivergence ?? null}
         isLive={isLive}
       />
+
+      {/* Asset Filter */}
+      <div className="flex justify-end text-[10px] text-gray-500">
+        <span className="mr-2 uppercase tracking-widest">Asset:</span>
+        {["ALL", "BTC", "ETH", "SOL"].map((asset) => (
+          <button
+            key={asset}
+            type="button"
+            onClick={() => setSelectedAsset(asset as AssetSymbol | "ALL")}
+            className={`mx-1 px-2 py-0.5 border rounded-sm ${
+              selectedAsset === asset
+                ? "border-cyan-400 text-cyan-300"
+                : "border-gray-700 text-gray-500 hover:border-gray-500"
+            }`}
+          >
+            {asset}
+          </button>
+        ))}
+      </div>
 
       {/* Divergence Chart */}
       <DivergenceChart data={chartData} />
