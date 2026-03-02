@@ -151,18 +151,33 @@ export default function Dashboard() {
       />
 
       {/* About box */}
-      <div className="border border-gray-700 rounded-sm bg-gray-900/60 p-3 text-[11px] text-gray-300">
+      <div className="border border-gray-700 rounded-sm bg-gray-900/60 p-3 text-[11px] text-gray-300 space-y-1">
         <div className="text-[10px] tracking-widest text-gray-500 uppercase mb-1">
           WHAT THIS DASHBOARD DOES
         </div>
-        <p className="mb-1">
-          We watch crypto prediction markets (BTC, ETH, SOL) on Polymarket and compare the markets
-          odds to a simple model based on current price and time left until expiry.
+        <p>
+          This page watches crypto prediction questions on Polymarket (BTC, ETH, SOL) and compares
+          the crowd&apos;s odds to a simple model that looks at the current price and time left.
         </p>
         <p>
-          When the difference is large, we flag it as a possible mispricing and show what would have
-          happened if you traded every BUY/SELL signal with fake money. No real trades are placed.
+          When the gap is big, we treat it as a possible mispricing and show what would have
+          happened if you followed every BUY / SELL signal with fake money. No real trades are
+          placed.
         </p>
+        <div className="mt-2 grid gap-1 md:grid-cols-3 text-[10px] text-gray-400">
+          <div>
+            <span className="font-semibold text-gray-300">See strange markets.</span> Find
+            questions where the odds look far from what simple math suggests.
+          </div>
+          <div>
+            <span className="font-semibold text-gray-300">Learn safely.</span> Watch a pretend
+            P&amp;L line instead of risking real money.
+          </div>
+          <div>
+            <span className="font-semibold text-gray-300">For curious users.</span> Built for
+            people exploring prediction markets and crypto odds, not for live trading.
+          </div>
+        </div>
       </div>
 
       {/* Asset Filter */}
