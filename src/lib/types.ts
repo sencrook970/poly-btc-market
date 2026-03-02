@@ -10,10 +10,13 @@ export interface PolymarketMarket {
   description: string;
 }
 
+export type AssetSymbol = "BTC" | "ETH" | "SOL";
+
 export interface ProcessedMarket {
   id: string;
   title: string;
   slug: string;
+  asset: AssetSymbol;
   yesPrice: number;
   noPrice: number;
   midPrice: number;
@@ -47,8 +50,14 @@ export interface LogEntry {
   signal: "BUY" | "SELL" | "HOLD";
 }
 
+export interface AssetPrices {
+  BTC: number;
+  ETH: number;
+  SOL: number;
+}
+
 export interface DashboardData {
-  btcPrice: number;
+  prices: AssetPrices;
   markets: ProcessedMarket[];
   topDivergence: ProcessedMarket | null;
   timestamp: number;

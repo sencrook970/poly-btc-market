@@ -24,7 +24,8 @@ export default function MarketList({ markets }: MarketListProps) {
           <table className="w-full text-xs">
             <thead>
               <tr className="text-gray-500 border-b border-gray-800">
-                <th className="text-left px-4 py-2 font-normal">MARKET</th>
+                <th className="text-left px-3 py-2 font-normal">ASSET</th>
+                <th className="text-left px-1 py-2 font-normal">MARKET</th>
                 <th className="text-right px-2 py-2 font-normal">MID</th>
                 <th className="text-right px-2 py-2 font-normal">FAIR</th>
                 <th className="text-right px-2 py-2 font-normal">DIV %</th>
@@ -55,7 +56,10 @@ export default function MarketList({ markets }: MarketListProps) {
                     transition={{ delay: i * 0.03 }}
                     className="border-b border-gray-800/50 hover:bg-gray-800/30"
                   >
-                    <td className="px-4 py-2 text-gray-300 max-w-[200px] truncate">
+                    <td className="px-3 py-2 text-gray-400 text-[10px]">
+                      {market.asset}
+                    </td>
+                    <td className="px-1 py-2 text-gray-300 max-w-[200px] truncate">
                       {market.title}
                     </td>
                     <td className="text-right px-2 py-2 text-cyan-400 tabular-nums">

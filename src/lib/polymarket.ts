@@ -1,21 +1,31 @@
-import type { ProcessedMarket } from "./types";
+import type { AssetSymbol, ProcessedMarket } from "./types";
 
 /**
- * Extract a BTC strike price from a market question.
+ * Infer asset symbol from market question.
+ */
+export function inferAsset(question: string): AssetSymbol | null {
+  if (/bitcoin|btc/i.test(question)) return "BTC";
+  if (/ether|ethereum|eth\b/i.test(question)) return "ETH";
+  if (/solana|sol\b/i.test(question)) return "SOL";
+  return null;
+}
+
+/**
+ * Extract a strike price from a market question for a given asset.
  * e.g. "Will Bitcoin hit $150k by March 31, 2026?" → 150000
- * e.g. "Will BTC exceed $150,000 by April?" → 150000
+ * e.g. "Will ETH exceed $10,000 by April?" → 10000
  */
 export function extractStrikePrice(question: string): number | null {
-  // Must mention Bitcoin or BTC
-  if (!/bitcoin|btc/i.test(question)) return null;
+  // Must mention one of the supported assets
+  if (!/(bitcoin|btc|ether|ethereum|eth\b|solana|sol\b)/i.test(question)) return null;
 
   // Match dollar amounts: $150k, $150,000, $1m, etc.
   const patterns = [
-    /\$(\d+(?:,\d{3})*(?:\.\d+)?)\s*[kK]/,         // $150k, $150K
-    /\$(\d+(?:\.\d+)?)\s*[mM]/,                      // $1m, $1M
-    /\$(\d{1,3}(?:,\d{3})+)/,                         // $150,000
+    /\$(\d+(?:,\d{3})*(?:\.\d+)?)\s*[kK]/, // $150k, $150K
+    /\$(\d+(?:\.\d+)?)\s*[mM]/, // $1m, $1M
+    /\$(\d{1,3}(?:,\d{3})+)/, // $150,000
     /\$(\d+(?:\.\d+)?)\s*(?:thousand|million|billion)/i,
-    /\$(\d{4,})/,                                      // $150000 (no commas)
+    /\$(\d{4,})/, // $150000 (no commas)
   ];
 
   for (const pattern of patterns) {
@@ -24,17 +34,21 @@ export function extractStrikePrice(question: string): number | null {
       let val = parseFloat(match[1].replace(/,/g, ""));
 
       // Handle suffixes
-      if (/[kK]/.test(question.charAt(match.index! + match[0].length - 1)) ||
-          question.slice(match.index!, match.index! + match[0].length).match(/[kK]/)) {
+      if (
+        /[kK]/.test(question.charAt(match.index! + match[0].length - 1)) ||
+        question.slice(match.index!, match.index! + match[0].length).match(/[kK]/)
+      ) {
         val *= 1000;
       }
-      if (/[mM]/.test(question.charAt(match.index! + match[0].length - 1)) ||
-          question.slice(match.index!, match.index! + match[0].length).match(/[mM]/)) {
+      if (
+        /[mM]/.test(question.charAt(match.index! + match[0].length - 1)) ||
+        question.slice(match.index!, match.index! + match[0].length).match(/[mM]/)
+      ) {
         val *= 1_000_000;
       }
 
-      // Must be a plausible BTC price (at least $10,000)
-      if (val >= 10_000) return val;
+      // Must be a plausible crypto price (at least $10 for these markets)
+      if (val >= 10) return val;
     }
   }
 
@@ -42,21 +56,21 @@ export function extractStrikePrice(question: string): number | null {
 }
 
 /**
- * Check if a market question is about BTC price
+ * Check if a market question is about a supported asset price
  */
-export function isBtcPriceMarket(question: string): boolean {
-  return /bitcoin|btc/i.test(question) && extractStrikePrice(question) !== null;
+export function isSupportedAssetPriceMarket(question: string): boolean {
+  return inferAsset(question) !== null && extractStrikePrice(question) !== null;
 }
 
 /**
- * Calculate fair probability given current BTC price, strike price, and time to expiry.
+ * Calculate fair probability given current asset price, strike price, and time to expiry.
  *
  * Uses simplified log-normal model:
- * - If BTC is already above strike → high probability, slight time risk
- * - If BTC is below strike → probability based on distance and time remaining
+ * - If spot is already above strike → high probability, slight time risk
+ * - If spot is below strike → probability based on distance and time remaining
  */
 export function calculateFairProbability(
-  btcPrice: number,
+  spotPrice: number,
   strikePrice: number,
   endDate: string
 ): number {
@@ -64,7 +78,7 @@ export function calculateFairProbability(
   const expiry = new Date(endDate).getTime();
   const daysRemaining = Math.max((expiry - now) / (1000 * 60 * 60 * 24), 0.1);
 
-  const ratio = btcPrice / strikePrice;
+  const ratio = spotPrice / strikePrice;
 
   if (ratio >= 1) {
     // BTC is already above strike
@@ -98,7 +112,7 @@ export function getSignal(divergence: number): "BUY" | "SELL" | "HOLD" {
 }
 
 /**
- * Process a raw Polymarket market with BTC price context
+ * Process a raw Polymarket market with asset price context
  */
 export function processMarket(
   market: {
@@ -109,8 +123,11 @@ export function processMarket(
     volume: number;
     endDate: string;
   },
-  btcPrice: number
+  spotPrice: number
 ): ProcessedMarket | null {
+  const asset = inferAsset(market.question);
+  if (!asset) return null;
+
   const strikePrice = extractStrikePrice(market.question);
   if (!strikePrice) return null;
 
@@ -130,7 +147,7 @@ export function processMarket(
   if (yesPrice === 0 && noPrice === 1) return null;
 
   const midPrice = yesPrice;
-  const fairPrice = calculateFairProbability(btcPrice, strikePrice, market.endDate);
+  const fairPrice = calculateFairProbability(spotPrice, strikePrice, market.endDate);
   const divergence = fairPrice - midPrice;
   const signal = getSignal(divergence);
 
@@ -138,6 +155,7 @@ export function processMarket(
     id: market.id,
     title: market.question,
     slug: market.slug,
+    asset,
     yesPrice,
     noPrice,
     midPrice,

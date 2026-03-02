@@ -1,10 +1,10 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import type { ProcessedMarket } from "@/lib/types";
+import type { AssetPrices, ProcessedMarket } from "@/lib/types";
 
 interface StatsBarProps {
-  btcPrice: number;
+  prices: AssetPrices;
   topMarket: ProcessedMarket | null;
   isLive: boolean;
 }
@@ -44,7 +44,7 @@ function StatCard({
   );
 }
 
-export default function StatsBar({ btcPrice, topMarket, isLive }: StatsBarProps) {
+export default function StatsBar({ prices, topMarket, isLive }: StatsBarProps) {
   const divergence = topMarket?.divergence ?? 0;
   const divergenceColor =
     Math.abs(divergence) > 0.02
@@ -81,8 +81,26 @@ export default function StatsBar({ btcPrice, topMarket, isLive }: StatsBarProps)
         <StatCard
           label="BTC / USD"
           value={
-            btcPrice > 0
-              ? `$${btcPrice.toLocaleString("en-US", { maximumFractionDigits: 0 })}`
+            prices.BTC > 0
+              ? `$${prices.BTC.toLocaleString("en-US", { maximumFractionDigits: 0 })}`
+              : "---"
+          }
+          color="text-white"
+        />
+        <StatCard
+          label="ETH / USD"
+          value={
+            prices.ETH > 0
+              ? `$${prices.ETH.toLocaleString("en-US", { maximumFractionDigits: 0 })}`
+              : "---"
+          }
+          color="text-white"
+        />
+        <StatCard
+          label="SOL / USD"
+          value={
+            prices.SOL > 0
+              ? `$${prices.SOL.toLocaleString("en-US", { maximumFractionDigits: 0 })}`
               : "---"
           }
           color="text-white"
