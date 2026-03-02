@@ -34,8 +34,11 @@ export default function DivergenceChart({ data }: DivergenceChartProps) {
 
   return (
     <div className="border border-gray-700 rounded-sm bg-gray-900/50 p-4">
-      <div className="text-[10px] tracking-widest text-gray-500 uppercase mb-3">
-        DIVERGENCE CHART (%)
+      <div className="text-[10px] tracking-widest text-gray-500 uppercase mb-1">
+        MISPRICING OVER TIME (MODEL VS MARKET)
+      </div>
+      <div className="text-[10px] text-gray-600 mb-2">
+        Above 0%: our model is more bullish than the market (BUY bias). Below 0%: more bearish (SELL bias).
       </div>
       <div className="h-48">
         {chartData.length < 2 ? (
@@ -65,7 +68,10 @@ export default function DivergenceChart({ data }: DivergenceChartProps) {
                   fontSize: 11,
                 }}
                 labelStyle={{ color: "#9ca3af" }}
-                formatter={(value: number) => [`${value.toFixed(3)}%`, "Divergence"]}
+                formatter={(value: number) => [
+                  `${value.toFixed(3)}%`,
+                  "Mispricing (model - market)",
+                ]}
               />
               <ReferenceLine y={2} stroke="#22c55e" strokeDasharray="5 5" strokeOpacity={0.5} />
               <ReferenceLine y={-2} stroke="#ef4444" strokeDasharray="5 5" strokeOpacity={0.5} />

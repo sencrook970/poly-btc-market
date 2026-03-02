@@ -30,7 +30,7 @@ export default function ExecutionLog({ entries }: ExecutionLogProps) {
     <div className="border border-gray-700 rounded-sm bg-gray-900/50 flex flex-col min-h-0">
       <div className="px-4 py-2 border-b border-gray-700">
         <span className="text-[10px] tracking-widest text-gray-500 uppercase">
-          EXECUTION LOG
+          SIGNAL HISTORY (FAKE TRADES)
         </span>
       </div>
       <div ref={scrollRef} className="overflow-y-auto flex-1 max-h-64 font-mono">
